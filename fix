@@ -1,0 +1,35 @@
+library(arrow)
+library(dplyr)
+
+# --- Load BPD .RData ---
+load("C:/RCode/20250703_BPDFile.RData")
+
+# --- Force key column to string() type ---
+Final_arrow <- Table$create(
+  Final_Data_Full %>%
+    mutate(
+      across(where(is.character), toupper),
+      PROV_MSTR_LOC_ID = as.character(PROV_MSTR_LOC_ID)  # ensure string
+    )
+)
+
+# --- Load BDC text files and cast PROV_MSTR_LOC_ID to same type ---
+bdc_files <- list.files("C:/BDC/", pattern = "\\.txt\\.gz$", full.names = TRUE)
+
+BDC_Data <- purrr::map_dfr(bdc_files, function(file) {
+  vroom::vroom(file, delim = "|", col_types = vroom::cols(.default = "c")) %>%
+    rename(PROV_MSTR_LOC_ID = BCBSA_PROV_MSTR_LOC_ID) %>%
+    mutate(
+      across(where(is.character), toupper),
+      PROV_MSTR_LOC_ID = as.character(PROV_MSTR_LOC_ID)  # ensure same type
+    )
+})
+
+BDC_arrow <- Table$create(BDC_Data)
+
+# --- Join with matching types ---
+Matched_BDC_arrow <- BDC_arrow %>%
+  filter(Designation_TYPE %in% c("BDC", "BDC+", "CC")) %>%
+  inner_join(Final_arrow, by = "PROV_MSTR_LOC_ID")
+
+Matched_BDC <- collect(Matched_BDC_arrow)  # ✅ should now succeed
