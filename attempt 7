@@ -1,4 +1,11 @@
 library(arrow)
+write_parquet(Final_Data_Full, file.path(bdc_path, "Final_Data_Full.parquet"))
+write_parquet(BDC_Data, file.path(bdc_path, "BDC_Data.parquet"))
+
+
+
+
+library(arrow)
 library(dplyr)
 library(fs)
 library(readxl)
