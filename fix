@@ -1,9 +1,62 @@
+library(tidyverse)
 library(arrow)
-library(dplyr)
 library(vroom)
+library(readxl)
+library(RODBC)
+library(fs)
 library(stringr)
 
-# --- Define shared schema (force string on join keys) ---
+# --- Paths ---
+bdc_path <- "C:/BDC/"
+bpd_rdata <- "C:/RCode/20250703_BPDFile.RData"
+blank_shell <- "C:/BDC/blank_.accdb"
+access_target <- file.path(bdc_path, paste0("BDC_", Sys.Date(), ".accdb"))
+
+# --- Load Final_Data_Full ---
+load(bpd_rdata)
+
+# --- Subset BPD Data to Schema Fields ---
+Final_Data_Full_sub <- Final_Data_Full %>%
+  select(
+    BCBSA_MSTR_PROV_ID,
+    PROV_MSTR_LOC_ID,
+    NPI,
+    TXNMY_CD,
+    ORG_NAME,
+    ENTITY_TYPE,
+    PROV_ADDR_LINE_1,
+    PROV_ADRS_CITY,
+    PROV_ADRS_ST,
+    PROV_ADRS_ZIP_CD
+  ) %>%
+  mutate(across(everything(), ~ toupper(as.character(.))))
+
+# --- Subset BDC Data to Schema Fields ---
+bdc_files <- list.files(bdc_path, pattern = "\\.txt\\.gz$", full.names = TRUE)
+
+BDC_Data <- map_dfr(bdc_files, function(file) {
+  vroom(file, delim = "|", col_types = cols(.default = "c")) %>%
+    rename(PROV_MSTR_LOC_ID = BCBSA_PROV_MSTR_LOC_ID) %>%
+    mutate(across(where(is.character), str_to_upper))
+})
+
+BDC_Data_sub <- BDC_Data %>%
+  select(
+    PROV_MSTR_LOC_ID,
+    BCBSA_MSTR_PROV_ID,
+    PROV_NPI,
+    PROV_ADDR_LINE_1,
+    PROV_ADRS_CITY,
+    PROV_ADRS_ST,
+    PROV_ADRS_ZIP_CD,
+    Designation_TYPE,
+    Bdc_Program_DESCRIPTION,
+    RECOGNTN_ENTITY_CD,
+    Recogntn_Value_CD
+  ) %>%
+  mutate(across(everything(), ~ toupper(as.character(.))))
+
+# --- Define Matching Schemas ---
 schema_bpd <- schema(
   BCBSA_MSTR_PROV_ID = string(),
   PROV_MSTR_LOC_ID = string(),
@@ -31,28 +84,70 @@ schema_bdc <- schema(
   Recogntn_Value_CD = string()
 )
 
-# --- Load Final_Data_Full from .RData and convert to Arrow Table ---
-load("C:/RCode/20250703_BPDFile.RData")
+# --- Create Arrow Tables ---
+Final_arrow <- Table$create(Final_Data_Full_sub, schema = schema_bpd)
+BDC_arrow <- Table$create(BDC_Data_sub, schema = schema_bdc)
 
-Final_arrow <- Table$create(
-  Final_Data_Full %>%
-    mutate(across(where(is.character), str_to_upper)),
-  schema = schema_bpd
-)
-
-# --- Load and combine BDC files ---
-bdc_files <- list.files("C:/BDC/", pattern = "\\.txt\\.gz$", full.names = TRUE)
-
-BDC_Data <- purrr::map_dfr(bdc_files, ~ vroom(.x, delim = "|", col_types = cols(.default = "c")))
-
-BDC_arrow <- Table$create(
-  BDC_Data %>%
-    rename(PROV_MSTR_LOC_ID = BCBSA_PROV_MSTR_LOC_ID) %>%
-    mutate(across(where(is.character), str_to_upper)),
-  schema = schema_bdc
-)
-
-# --- Arrow join on consistent types ---
+# --- Arrow Join ---
 Matched_BDC_arrow <- BDC_arrow %>%
   filter(Designation_TYPE %in% c("BDC", "BDC+", "CC")) %>%
   inner_join(Final_arrow, by = "PROV_MSTR_LOC_ID")
+
+Matched_BDC <- collect(Matched_BDC_arrow)
+
+# --- Prepare for Export ---
+BDC_Final <- Matched_BDC %>%
+  filter(!is.na(Bdc_Program_DESCRIPTION)) %>% 
+  mutate(
+    PROVIDER_NAME = ORG_NAME,
+    NTWK = "",
+    PROVTYPE = "",
+    TAXONOMY = TXNMY_CD,
+    RowId = row_number(),
+    Latitude = NA_character_,
+    Longitude = NA_character_,
+    GeoInfo = NA_character_,
+    StandardZip = NA_character_,
+    StandardStat = NA_character_,
+    CountySSA = NA_character_
+  ) %>%
+  distinct(PROV_ADDR_LINE_1, Bdc_Program_DESCRIPTION, .keep_all = TRUE) %>%
+  transmute(
+    NTWK,
+    PROVTYPE,
+    NPI = PROV_NPI,
+    PROVIDER_NAME,
+    ADDRESS = PROV_ADDR_LINE_1,
+    CITY = PROV_ADRS_CITY,
+    STATE = PROV_ADRS_ST,
+    ZIP_5 = PROV_ADRS_ZIP_CD,
+    TAXONOMY,
+    RowId,
+    Latitude,
+    Longitude,
+    GeoInfo,
+    StandardZip,
+    StandardStat,
+    CountySSA,
+    Bdc_Program_DESCRIPTION,
+    RECOGNTN_ENTITY_CD,
+    Recogntn_Value_CD,
+    Designation_TYPE
+  )
+
+# --- Export to Access ---
+file_copy(blank_shell, access_target, overwrite = TRUE)
+
+conn <- odbcDriverConnect(paste0("Driver={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=", access_target))
+
+chunk_size <- 10000
+n <- nrow(BDC_Final)
+
+for (start in seq(1, n, by = chunk_size)) {
+  end <- min(start + chunk_size - 1, n)
+  chunk <- BDC_Final[start:end, ]
+  sqlSave(conn, chunk, tablename = "NTWK", rownames = FALSE, append = (start != 1), safer = TRUE)
+}
+
+odbcClose(conn)
+message("✅ Export complete: ", access_target)
