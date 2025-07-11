@@ -1,35 +1,58 @@
 library(arrow)
 library(dplyr)
+library(vroom)
+library(stringr)
 
-# --- Load BPD .RData ---
-load("C:/RCode/20250703_BPDFile.RData")
-
-# --- Force key column to string() type ---
-Final_arrow <- Table$create(
-  Final_Data_Full %>%
-    mutate(
-      across(where(is.character), toupper),
-      PROV_MSTR_LOC_ID = as.character(PROV_MSTR_LOC_ID)  # ensure string
-    )
+# --- Define shared schema (force string on join keys) ---
+schema_bpd <- schema(
+  BCBSA_MSTR_PROV_ID = string(),
+  PROV_MSTR_LOC_ID = string(),
+  NPI = string(),
+  TXNMY_CD = string(),
+  ORG_NAME = string(),
+  ENTITY_TYPE = string(),
+  PROV_ADDR_LINE_1 = string(),
+  PROV_ADRS_CITY = string(),
+  PROV_ADRS_ST = string(),
+  PROV_ADRS_ZIP_CD = string()
 )
 
-# --- Load BDC text files and cast PROV_MSTR_LOC_ID to same type ---
+schema_bdc <- schema(
+  PROV_MSTR_LOC_ID = string(),
+  BCBSA_MSTR_PROV_ID = string(),
+  PROV_NPI = string(),
+  PROV_ADDR_LINE_1 = string(),
+  PROV_ADRS_CITY = string(),
+  PROV_ADRS_ST = string(),
+  PROV_ADRS_ZIP_CD = string(),
+  Designation_TYPE = string(),
+  Bdc_Program_DESCRIPTION = string(),
+  RECOGNTN_ENTITY_CD = string(),
+  Recogntn_Value_CD = string()
+)
+
+# --- Load Final_Data_Full from .RData and convert to Arrow Table ---
+load("C:/RCode/20250703_BPDFile.RData")
+
+Final_arrow <- Table$create(
+  Final_Data_Full %>%
+    mutate(across(where(is.character), str_to_upper)),
+  schema = schema_bpd
+)
+
+# --- Load and combine BDC files ---
 bdc_files <- list.files("C:/BDC/", pattern = "\\.txt\\.gz$", full.names = TRUE)
 
-BDC_Data <- purrr::map_dfr(bdc_files, function(file) {
-  vroom::vroom(file, delim = "|", col_types = vroom::cols(.default = "c")) %>%
+BDC_Data <- purrr::map_dfr(bdc_files, ~ vroom(.x, delim = "|", col_types = cols(.default = "c")))
+
+BDC_arrow <- Table$create(
+  BDC_Data %>%
     rename(PROV_MSTR_LOC_ID = BCBSA_PROV_MSTR_LOC_ID) %>%
-    mutate(
-      across(where(is.character), toupper),
-      PROV_MSTR_LOC_ID = as.character(PROV_MSTR_LOC_ID)  # ensure same type
-    )
-})
+    mutate(across(where(is.character), str_to_upper)),
+  schema = schema_bdc
+)
 
-BDC_arrow <- Table$create(BDC_Data)
-
-# --- Join with matching types ---
+# --- Arrow join on consistent types ---
 Matched_BDC_arrow <- BDC_arrow %>%
   filter(Designation_TYPE %in% c("BDC", "BDC+", "CC")) %>%
   inner_join(Final_arrow, by = "PROV_MSTR_LOC_ID")
-
-Matched_BDC <- collect(Matched_BDC_arrow)  # ✅ should now succeed
