@@ -7,22 +7,22 @@ library(stringr)
 
 # --- Paths ---
 bdc_path <- "C:/BDC/"
-bpd_parquet <- file.path(bdc_path, "Final_Keys.parquet")
+final_data_parquet <- file.path(bdc_path, "Final_Data_Full.parquet")
 bdc_parquet <- file.path(bdc_path, "BDC_Data.parquet")
 blank_shell <- file.path(bdc_path, "blank_.accdb")
 access_target <- file.path(bdc_path, paste0("BDC_", Sys.Date(), ".accdb"))
 
-# --- Load Arrow Datasets & Normalize Types ---
+# --- Load Arrow Datasets & Normalize Join Types ---
 BDC_arrow <- open_dataset(bdc_parquet) %>%
   mutate(PROV_MSTR_LOC_ID = cast(PROV_MSTR_LOC_ID, string()))
 
-Keys_arrow <- open_dataset(bpd_parquet) %>%
+Final_arrow <- open_dataset(final_data_parquet) %>%
   mutate(PROV_MSTR_LOC_ID = cast(PROV_MSTR_LOC_ID, string()))
 
 # --- Match BPD Providers ---
 Matched_BDC_arrow <- BDC_arrow %>%
   filter(Designation_TYPE %in% c("BDC", "BDC+", "CC")) %>%
-  inner_join(Keys_arrow, by = "PROV_MSTR_LOC_ID")
+  inner_join(Final_arrow, by = "PROV_MSTR_LOC_ID")
 
 Matched_BDC <- collect(Matched_BDC_arrow)
 
