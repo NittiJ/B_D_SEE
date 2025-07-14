@@ -72,3 +72,14 @@ BDC_Data %>%
   ) %>%
   distinct(PROV_MSTR_LOC_ID) %>%
   nrow()
+
+
+
+BDC_Data %>%
+  filter(
+    str_detect(Bdc_Program_DESCRIPTION, "BARIATRIC"),
+    Designation_TYPE == "BDC+"
+  ) %>%
+  distinct(PROV_NPI) %>%
+  nrow()
+
