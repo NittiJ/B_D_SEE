@@ -126,3 +126,17 @@ relaxed_bariatric_valid_recog <- BDC_Data %>%
 
 nrow(relaxed_bariatric_valid_recog)
 
+
+
+
+BDC_Data %>%
+  filter(
+    str_detect(Bdc_Program_DESCRIPTION, regex("BARIATRIC", ignore_case = TRUE)),
+    Designation_TYPE == "BDC+",
+    !is.na(RECOGNTN_ENTITY_CD),
+    !is.na(Recogntn_Value_CD),
+    ENTITY_TYPE == "4"
+  ) %>%
+  distinct(PROV_MSTR_LOC_ID) %>%
+  nrow()
+
