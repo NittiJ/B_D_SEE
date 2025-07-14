@@ -140,3 +140,56 @@ BDC_Data %>%
   distinct(PROV_MSTR_LOC_ID) %>%
   nrow()
 
+
+
+
+BDC_Data %>%
+  filter(
+    str_detect(Bdc_Program_DESCRIPTION, regex("BARIATRIC", ignore_case = TRUE)),
+    Designation_TYPE == "BDC+",
+    !is.na(RECOGNTN_ENTITY_CD) | !is.na(Recogntn_Value_CD)
+  ) %>%
+  distinct(PROV_MSTR_LOC_ID) %>%
+  nrow()
+
+
+
+BDC_Data %>%
+  filter(
+    str_detect(Bdc_Program_DESCRIPTION, regex("BARIATRIC", ignore_case = TRUE)),
+    Designation_TYPE == "BDC+",
+    !is.na(RECOGNTN_ENTITY_CD),
+    !is.na(Recogntn_Value_CD)
+  ) %>%
+  distinct(PROV_NPI, PROV_MSTR_LOC_ID) %>%
+  nrow()
+
+
+
+
+BDC_Data %>%
+  mutate(Bdc_Program_DESCRIPTION = str_trim(str_to_upper(Bdc_Program_DESCRIPTION))) %>%
+  filter(
+    Bdc_Program_DESCRIPTION == "BARIATRIC SURGERY",
+    Designation_TYPE == "BDC+",
+    !is.na(RECOGNTN_ENTITY_CD),
+    !is.na(Recogntn_Value_CD)
+  ) %>%
+  distinct(PROV_MSTR_LOC_ID) %>%
+  nrow()
+
+
+
+
+BDC_Data %>%
+  filter(
+    str_detect(Bdc_Program_DESCRIPTION, "BARIATRIC"),
+    Designation_TYPE == "BDC+"
+  ) %>%
+  summarize(
+    total = n(),
+    distinct_locs = n_distinct(PROV_MSTR_LOC_ID),
+    missing_codes = sum(is.na(RECOGNTN_ENTITY_CD) | is.na(Recogntn_Value_CD))
+  )
+
+
