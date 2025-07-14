@@ -1,0 +1,13 @@
+# BDC only
+bariatric_bdc_distinct <- bariatric_data %>%
+  filter(Designation_TYPE == "BDC") %>%
+  distinct(PROV_ADDRS1, PROV_NPI, Bdc_Program_DESCRIPTION, .keep_all = TRUE)
+
+# BDC+ only
+bariatric_bdc_plus_distinct <- bariatric_data %>%
+  filter(Designation_TYPE == "BDC+") %>%
+  distinct(PROV_ADDRS1, PROV_NPI, Bdc_Program_DESCRIPTION, .keep_all = TRUE)
+
+
+nrow(bariatric_bdc_distinct)      # Should get close to 374
+nrow(bariatric_bdc_plus_distinct) # Should get close to 457
