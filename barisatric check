@@ -1,13 +1,26 @@
-# BDC only
-bariatric_bdc_distinct <- bariatric_data %>%
-  filter(Designation_TYPE == "BDC") %>%
-  distinct(PROV_ADDRS1, PROV_NPI, Bdc_Program_DESCRIPTION, .keep_all = TRUE)
-
-# BDC+ only
-bariatric_bdc_plus_distinct <- bariatric_data %>%
-  filter(Designation_TYPE == "BDC+") %>%
-  distinct(PROV_ADDRS1, PROV_NPI, Bdc_Program_DESCRIPTION, .keep_all = TRUE)
+bariatric_data <- BDC_Data %>%
+  filter(
+    Bdc_Program_DESCRIPTION == "BARIATRIC SURGERY",
+    Designation_TYPE %in% c("BDC", "BDC+")
+  )
 
 
-nrow(bariatric_bdc_distinct)      # Should get close to 374
-nrow(bariatric_bdc_plus_distinct) # Should get close to 457
+# Just BDC
+bariatric_bdc <- bariatric_data %>%
+  filter(Designation_TYPE == "BDC")
+
+# Just BDC+
+bariatric_bdc_plus <- bariatric_data %>%
+  filter(Designation_TYPE == "BDC+")
+
+
+# Apply distinct logic to avoid double-counting at same location
+bariatric_bdc_distinct <- bariatric_bdc %>%
+  distinct(PROV_MSTR_LOC_ID, Bdc_Program_DESCRIPTION, .keep_all = TRUE)
+
+bariatric_bdc_plus_distinct <- bariatric_bdc_plus %>%
+  distinct(PROV_MSTR_LOC_ID, Bdc_Program_DESCRIPTION, .keep_all = TRUE)
+
+
+nrow(bariatric_bdc_distinct)       # Should approach 374
+nrow(bariatric_bdc_plus_distinct)  # Should approach 457
