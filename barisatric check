@@ -28,3 +28,27 @@ nrow(bariatric_bdc_plus_distinct)  # Should approach 457
 
 
 filter(Designation_TYPE == "BDC+" & str_detect(Bdc_Program_DESCRIPTION, "BARIATRIC", ignore_case = TRUE)) %>% count(Bdc_Program_DESCRIPTION)
+
+
+
+BDC_Data %>%
+  filter(str_detect(Bdc_Program_DESCRIPTION, "BARIATRIC")) %>%
+  group_by(Designation_TYPE, Bdc_Program_DESCRIPTION) %>%
+  summarise(n = n(), .groups = "drop") %>%
+  arrange(desc(n))
+
+
+BDC_Data %>%
+  filter(str_detect(Bdc_Program_DESCRIPTION, "BARIATRIC") | is.na(Bdc_Program_DESCRIPTION) | Bdc_Program_DESCRIPTION == "") %>%
+  count(Designation_TYPE, Bdc_Program_DESCRIPTION)
+
+
+BDC_Data %>%
+  filter(Bdc_Program_DESCRIPTION == "BARIATRIC SURGERY", Designation_TYPE == "BDC") %>%
+  summarise(
+    total = n(),
+    distinct_npi = n_distinct(PROV_NPI),
+    distinct_loc = n_distinct(PROV_MSTR_LOC_ID),
+    distinct_both = n_distinct(paste(PROV_NPI, PROV_MSTR_LOC_ID))
+  )
+
