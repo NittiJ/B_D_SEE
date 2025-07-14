@@ -24,3 +24,7 @@ bariatric_bdc_plus_distinct <- bariatric_bdc_plus %>%
 
 nrow(bariatric_bdc_distinct)       # Should approach 374
 nrow(bariatric_bdc_plus_distinct)  # Should approach 457
+
+
+
+filter(Designation_TYPE == "BDC+" & str_detect(Bdc_Program_DESCRIPTION, "BARIATRIC", ignore_case = TRUE)) %>% count(Bdc_Program_DESCRIPTION)
