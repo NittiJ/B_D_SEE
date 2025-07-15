@@ -11,3 +11,7 @@ Fertility_Clean <- BDC_Data %>%
   ) %>%
   filter(ENTITY_TYPE == "4") %>%
   distinct(PROV_MSTR_LOC_ID, Designation_TYPE, .keep_all = TRUE)
+
+
+Fertility_Clean %>%
+  count(Designation_TYPE)
