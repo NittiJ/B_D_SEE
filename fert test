@@ -1,28 +1,23 @@
-# Filter just fertility-related data
-fertility_subset <- BDC_Data %>%
-  filter(
-    str_detect(Bdc_Program_DESCRIPTION, regex("FERTILITY", ignore_case = TRUE)),
-    Designation_TYPE %in% c("BDC", "BDC+"),
-    !is.na(PROV_MSTR_LOC_ID)
-  )
-
-# Get distinct location count for BDC
-fertility_bdc <- fertility_subset %>%
-  filter(Designation_TYPE == "BDC") %>%
-  distinct(PROV_MSTR_LOC_ID)
-
-# Get distinct location count for BDC+
-fertility_bdc_plus <- fertility_subset %>%
-  filter(Designation_TYPE == "BDC+") %>%
-  distinct(PROV_MSTR_LOC_ID)
-
-# Print access point counts
-cat("Fertility BDC Access Points: ", nrow(fertility_bdc), "\n")
-cat("Fertility BDC+ Access Points: ", nrow(fertility_bdc_plus), "\n")
+BDC_Data %>%
+  filter(str_detect(Bdc_Program_DESCRIPTION, regex("FERTILITY", ignore_case = TRUE))) %>%
+  distinct(Bdc_Program_DESCRIPTION) %>%
+  arrange(Bdc_Program_DESCRIPTION)
 
 
+str_detect(Bdc_Program_DESCRIPTION, regex("FERTIL", ignore_case = TRUE))
 
-# Count how many times each location appears
-duplicates_check <- fertility_subset %>%
-  count(PROV_MSTR_LOC_ID, Designation_TYPE) %>%
-  filter(n > 1)
+BDC_Data %>%
+  filter(str_detect(Bdc_Program_DESCRIPTION, regex("FERTIL", ignore_case = TRUE))) %>%
+  distinct(PROV_MSTR_LOC_ID) %>%
+  nrow()
+
+
+BDC_Data %>%
+  filter(str_detect(Bdc_Program_DESCRIPTION, regex("FERTIL", ignore_case = TRUE))) %>%
+  distinct(PROV_MSTR_LOC_ID, Designation_TYPE) %>%
+  count(Designation_TYPE)
+
+BDC_Data %>%
+  filter(str_detect(Bdc_Program_DESCRIPTION, regex("FERTIL", ignore_case = TRUE))) %>%
+  distinct(PROV_MSTR_LOC_ID) %>%
+  nrow()
