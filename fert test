@@ -1,4 +1,6 @@
 BDC_Data %>%
-  filter(Bdc_Program_DESCRIPTION == "FERTILITY CARE") %>%
-  count(TERMINATION_DT) %>%
-  arrange(desc(n))
+  filter(
+    Bdc_Program_DESCRIPTION == "FERTILITY CARE",
+    TERMINATION_DT == "12/31/9999"
+  ) %>%
+  count()
