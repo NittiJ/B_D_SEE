@@ -1,6 +1,16 @@
-BDC_Data %>%
+Fertility_Data <- Matched_BDC %>%
   filter(
     Bdc_Program_DESCRIPTION == "FERTILITY CARE",
-    TERMINATION_DT == "12/31/9999"
-  ) %>%
+    ENTITY_TYPE == "1",  # Professionals only
+    Designation_TYPE %in% c("BDC", "BDC+"),
+    !is.na(RECOGNTN_ENTITY_CD),
+    !is.na(Recogntn_Value_CD)
+  )
+
+
+Fertility_Data %>%
+  count(Designation_TYPE)
+
+Fertility_Data %>%
+  distinct(PROV_MSTR_LOC_ID) %>%
   count()
