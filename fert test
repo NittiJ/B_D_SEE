@@ -1,17 +1,45 @@
-Fertility_Clean <- BDC_Data %>%
-  filter(
-    Bdc_Program_DESCRIPTION == "FERTILITY CARE",
-    Designation_TYPE %in% c("BDC", "BDC+"),
-    !is.na(RECOGNTN_ENTITY_CD),
-    !is.na(Recogntn_Value_CD)
-  ) %>%
-  inner_join(
-    Final_Keys,
-    by = c("BCBSA_MSTR_PROV_ID", "PROV_MSTR_LOC_ID")
-  ) %>%
-  filter(ENTITY_TYPE == "4") %>%
+fertility_raw <- BDC_Data %>%
+  filter(Bdc_Program_DESCRIPTION == "FERTILITY CARE")
+
+nrow(fertility_raw)
+
+
+fertility_filtered <- fertility_raw %>%
+  filter(Designation_TYPE %in% c("BDC", "BDC+"))
+
+fertility_filtered %>% count(Designation_TYPE)
+
+
+fertility_recognized <- fertility_filtered %>%
+  filter(!is.na(RECOGNTN_ENTITY_CD), !is.na(Recogntn_Value_CD))
+
+nrow(fertility_recognized)
+
+
+fertility_joined <- fertility_filtered %>%
+  inner_join(Final_Keys, by = c("BCBSA_MSTR_PROV_ID", "PROV_MSTR_LOC_ID"))
+
+
+anti_join(fertility_filtered, Final_Keys, by = c("BCBSA_MSTR_PROV_ID", "PROV_MSTR_LOC_ID"))
+
+fertility_facilities <- fertility_joined %>%
+  filter(ENTITY_TYPE == "4")
+
+
+fertility_final <- fertility_facilities %>%
   distinct(PROV_MSTR_LOC_ID, Designation_TYPE, .keep_all = TRUE)
 
+fertility_final %>% count(Designation_TYPE)
 
-Fertility_Clean %>%
+
+
+
+BDC_Data %>%
+  filter(
+    Bdc_Program_DESCRIPTION == "FERTILITY CARE",
+    Designation_TYPE %in% c("BDC", "BDC+")
+  ) %>%
+  inner_join(Final_Keys, by = c("BCBSA_MSTR_PROV_ID", "PROV_MSTR_LOC_ID")) %>%
+  filter(ENTITY_TYPE == "4") %>%
+  distinct(PROV_MSTR_LOC_ID, Designation_TYPE, .keep_all = TRUE) %>%
   count(Designation_TYPE)
