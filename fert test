@@ -3,8 +3,12 @@ Fertility_Clean <- BDC_Data %>%
     Bdc_Program_DESCRIPTION == "FERTILITY CARE",
     Designation_TYPE %in% c("BDC", "BDC+"),
     !is.na(RECOGNTN_ENTITY_CD),
-    !is.na(Recogntn_Value_CD),
-    ENTITY_TYPE == "4"
+    !is.na(Recogntn_Value_CD)
   ) %>%
+  inner_join(
+    Final_Keys,
+    by = c("BCBSA_MSTR_PROV_ID", "PROV_MSTR_LOC_ID")
+  ) %>%
+  filter(ENTITY_TYPE == "4") %>%  # Only facilities
   distinct(PROV_MSTR_LOC_ID, Designation_TYPE, .keep_all = TRUE)
 Fertility_Clean %>% count(Designation_TYPE)
