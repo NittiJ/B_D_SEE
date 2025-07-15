@@ -1,9 +1,4 @@
-Fertility_Matched <- BDC_Data %>%
-  filter(
-    Bdc_Program_DESCRIPTION == "FERTILITY CARE",
-    Designation_TYPE %in% c("BDC", "BDC+"),
-    TERMINATION_DT == "12/31/9999"
-  ) %>%
-  inner_join(Final_Keys, by = c("BCBSA_MSTR_PROV_ID", "PROV_MSTR_LOC_ID")) %>%
-  distinct(PROV_MSTR_LOC_ID, Designation_TYPE, .keep_all = TRUE) %>%
-  count(Designation_TYPE)
+BDC_Data %>%
+  filter(Bdc_Program_DESCRIPTION == "FERTILITY CARE") %>%
+  count(TERMINATION_DT) %>%
+  arrange(desc(n))
