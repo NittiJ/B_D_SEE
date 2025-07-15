@@ -1,0 +1,26 @@
+BDC <- fertility_data %>%
+  filter(Designation_TYPE == "BDC") %>%
+  distinct(PROV_MSTR_LOC_ID)
+
+BDC_plus <- fertility_data %>%
+  filter(Designation_TYPE == "BDC+") %>%
+  distinct(PROV_MSTR_LOC_ID)
+
+nrow(BDC)       # Compare to 251
+nrow(BDC_plus)  # Compare to 153
+
+
+dupes <- fertility_data %>%
+  group_by(PROV_MSTR_LOC_ID, Designation_TYPE) %>%
+  filter(n() > 1)
+
+# See how many times each location appears
+dupe_summary <- dupes %>%
+  count(PROV_MSTR_LOC_ID, Designation_TYPE)
+
+
+
+filtered <- fertility_data %>%
+  filter(Designation_TYPE %in% c("BDC", "BDC+"),
+         RECOGNTN_ENTITY_CD %in% c("AF", "AH", "AJ")) %>%  # Common facility entity codes
+  distinct(PROV_MSTR_LOC_ID, Designation_TYPE)
