@@ -1,39 +1,20 @@
 BDC_Data %>%
-  filter(Bdc_Program_DESCRIPTION == "FERTILITY CARE") %>%
+  filter(str_detect(Bdc_Program_DESCRIPTION, "FERTILITY", ignore_case = TRUE)) %>%
+  count(Designation_TYPE, sort = TRUE)
+
+
+BDC_Data %>%
+  filter(str_detect(Bdc_Program_DESCRIPTION, "FERTILITY", ignore_case = TRUE)) %>%
+  distinct(PROV_MSTR_LOC_ID, PROV_NPI) %>%
   nrow()
 
-BDC_Data %>%
-  filter(Bdc_Program_DESCRIPTION == "FERTILITY CARE") %>%
-  distinct(PROV_MSTR_LOC_ID) %>%
-  nrow()
-
 
 BDC_Data %>%
-  filter(Bdc_Program_DESCRIPTION == "FERTILITY CARE") %>%
-  distinct(PROV_MSTR_LOC_ID, Designation_TYPE) %>%
-  count(Designation_TYPE)
-
-
-filter(
-  Bdc_Program_DESCRIPTION == "FERTILITY CARE",
-  Designation_TYPE %in% c("BDC", "BDC+")
-)
-
-
-filter(
-  Bdc_Program_DESCRIPTION == "FERTILITY CARE",
-  is.na(Designation_TYPE) | Designation_TYPE %in% c("BDC", "BDC+")
-)
-
-
-
+  filter(str_detect(Bdc_Program_DESCRIPTION, "FERTILITY", ignore_case = TRUE)) %>%
+  distinct(Bdc_Program_DESCRIPTION)
 
 
 BDC_Data %>%
-  filter(
-    Bdc_Program_DESCRIPTION == "FERTILITY CARE",
-    !is.na(RECOGNTN_ENTITY_CD),
-    !is.na(Recogntn_Value_CD)
-  ) %>%
+  filter(str_detect(Bdc_Program_DESCRIPTION, "FERTILITY", ignore_case = TRUE)) %>%
   distinct(PROV_MSTR_LOC_ID, PROV_NPI, Designation_TYPE) %>%
   count(Designation_TYPE)
