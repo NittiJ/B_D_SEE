@@ -1,16 +1,16 @@
-Fertility_Data <- Matched_BDC %>%
+Fertility_Final <- BDC_Data %>%
   filter(
     Bdc_Program_DESCRIPTION == "FERTILITY CARE",
-    ENTITY_TYPE == "1",  # Professionals only
     Designation_TYPE %in% c("BDC", "BDC+"),
     !is.na(RECOGNTN_ENTITY_CD),
     !is.na(Recogntn_Value_CD)
+  ) %>%
+  inner_join(
+    Final_Keys %>% filter(ENTITY_TYPE == "1"),  # Only professionals
+    by = c("PROV_MSTR_LOC_ID", "BCBSA_MSTR_PROV_ID")
   )
 
 
-Fertility_Data %>%
-  count(Designation_TYPE)
-
-Fertility_Data %>%
-  distinct(PROV_MSTR_LOC_ID) %>%
-  count()
+# Deduplicated counts per program
+Fertility_Final %>% filter(Designation_TYPE == "BDC") %>% distinct(PROV_MSTR_LOC_ID) %>% nrow()
+Fertility_Final %>% filter(Designation_TYPE == "BDC+") %>% distinct(PROV_MSTR_LOC_ID) %>% nrow()
