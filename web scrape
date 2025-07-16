@@ -1,0 +1,49 @@
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+
+def scrape_bdc(designation_code, specialty_code, max_pages=5):
+    base_url = "https://www.bcbs.com/about-us/programs-initiatives/blue-distinction-specialty-care/centers-and-physicians-search"
+    providers = []
+
+    for page in range(1, max_pages + 1):
+        params = {
+            "designation": designation_code,
+            "specialties": specialty_code,
+            "states": ",".join([
+                "AL","AK","AZ","AR","CA","CO","CT","DE","DC","FL","GA","HI","ID","IL","IN",
+                "IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH",
+                "NJ","NM","NY","NC","ND","OH","OK","OR","PA","PR","RI","SC","SD","TN","TX",
+                "UT","VT","VI","VA","WA","WV","WI","WY"
+            ]),
+            "page": page,
+            "results": "true",
+            "searchType": "facilities"
+        }
+
+        response = requests.get(base_url, params=params)
+        soup = BeautifulSoup(response.text, "html.parser")
+
+        for card in soup.select(".provider-listing"):
+            name = card.select_one("h3").get_text(strip=True)
+            address = card.select_one(".address").get_text(" ", strip=True)
+            phone_tag = card.select_one(".phone")
+            phone = phone_tag.get_text(strip=True) if phone_tag else ""
+            providers.append({
+                "Name": name,
+                "Address": address,
+                "Phone": phone,
+                "Program": designation_code,
+                "Specialty": specialty_code
+            })
+
+    return pd.DataFrame(providers)
+
+# Example usage
+df_bdc_bs = scrape_bdc("Blue Distinction Center", "BS", max_pages=10)
+df_bdc_fc = scrape_bdc("Blue Distinction Center", "FC", max_pages=10)
+
+# Export to Excel
+with pd.ExcelWriter("BDC_Provider_Scraped.xlsx", engine="openpyxl") as writer:
+    df_bdc_bs.to_excel(writer, sheet_name="Bariatric_BDC", index=False)
+    df_bdc_fc.to_excel(writer, sheet_name="Fertility_BDC", index=False)
