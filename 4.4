@@ -39,17 +39,17 @@ BDC_Data <- map_dfr(bdc_files, function(file) {
     mutate(across(where(is.character), str_to_upper))
 })
 
-# --- Match BPD Providers and Apply Termination Filter ---
+# --- Match BPD Providers with relaxed logic ---
 Matched_BDC <- BDC_Data %>%
   filter(
     Designation_TYPE %in% c("BDC", "BDC+", "CC"),
     !is.na(Bdc_Program_DESCRIPTION),
     !is.na(Recogntn_Value_CD),
-    TERM_DATE %in% c("12/31/9999", "99991231")
+    str_detect(TERM_DATE, "9999")
   ) %>%
   left_join(Final_Keys, by = c("PROV_MSTR_LOC_ID", "BCBSA_MSTR_PROV_ID"))
 
-# --- Apply Special Deduplication for Fertility Care ---
+# --- Apply Fertility deduplication logic ---
 Matched_BDC <- Matched_BDC %>%
   mutate(
     dedup_key = case_when(
@@ -105,11 +105,15 @@ conn <- odbcDriverConnect(paste0("Driver={Microsoft Access Driver (*.mdb, *.accd
 chunk_size <- 10000
 n <- nrow(BDC_Final)
 
-for (start in seq(1, n, by = chunk_size)) {
-  end <- min(start + chunk_size - 1, n)
-  chunk <- BDC_Final[start:end, ]
-  sqlSave(conn, chunk, tablename = "NTWK", rownames = FALSE, append = (start != 1), safer = TRUE)
+if (n > 0) {
+  for (start in seq(1, n, by = chunk_size)) {
+    end <- min(start + chunk_size - 1, n)
+    chunk <- BDC_Final[start:end, ]
+    sqlSave(conn, chunk, tablename = "NTWK", rownames = FALSE, append = (start != 1), safer = TRUE)
+  }
+  message(" Export complete: ", access_target)
+} else {
+  message(" No rows to export.")
 }
 
 odbcClose(conn)
-message("✅ Export complete: ", access_target)
