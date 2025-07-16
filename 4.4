@@ -1,3 +1,4 @@
+
 library(tidyverse)
 library(vroom)
 library(readxl)
@@ -31,7 +32,7 @@ Final_Keys <- Final_Data_Full %>%
 rm(Final_Data_Full)
 
 # --- Load BDC .txt.gz files ---
-bdc_files <- list.files(bdc_path, pattern = "\\.txt\\.gz$", full.names = TRUE)
+bdc_files <- list.files(bdc_path, pattern = "\.txt\.gz$", full.names = TRUE)
 
 BDC_Data <- map_dfr(bdc_files, function(file) {
   vroom(file, delim = "|", col_types = cols(.default = "c")) %>%
@@ -44,17 +45,14 @@ Matched_BDC <- BDC_Data %>%
   filter(
     Designation_TYPE %in% c("BDC", "BDC+", "CC"),
     !is.na(Bdc_Program_DESCRIPTION),
-    !is.na(Recogntn_Value_CD),
-    str_detect(TERM_DATE, "9999")
+    is.na(TERM_DATE) | TERM_DATE == "9999-01-01"
   ) %>%
-  left_join(Final_Keys, by = c("PROV_MSTR_LOC_ID", "BCBSA_MSTR_PROV_ID"))
-
-# --- Apply Fertility deduplication logic ---
-Matched_BDC <- Matched_BDC %>%
+  left_join(Final_Keys, by = c("PROV_MSTR_LOC_ID", "BCBSA_MSTR_PROV_ID")) %>%
   mutate(
-    dedup_key = case_when(
-      Bdc_Program_DESCRIPTION == "FERTILITY CARE" ~ PROV_NPI,
-      TRUE ~ PROV_MSTR_LOC_ID
+    dedup_key = if_else(
+      Bdc_Program_DESCRIPTION == "FERTILITY CARE",
+      paste0(PROV_NPI, "_", PROV_ADRS_ZIP_CD),
+      paste0(PROV_MSTR_LOC_ID, "_", PROV_ADRS_ZIP_CD)
     )
   )
 
@@ -111,9 +109,7 @@ if (n > 0) {
     chunk <- BDC_Final[start:end, ]
     sqlSave(conn, chunk, tablename = "NTWK", rownames = FALSE, append = (start != 1), safer = TRUE)
   }
-  message(" Export complete: ", access_target)
-} else {
-  message(" No rows to export.")
 }
 
 odbcClose(conn)
+message("✅ Export complete: ", access_target)
