@@ -1,0 +1,60 @@
+# Install required packages if not already installed
+install.packages("RSelenium")
+install.packages("rvest")
+install.packages("dplyr")
+install.packages("readr")
+
+# Load libraries
+library(RSelenium)
+library(rvest)
+library(dplyr)
+library(readr)
+
+# Start Selenium
+rD <- rsDriver(browser = "firefox", port = 4545L, verbose = FALSE)
+remDr <- rD$client
+
+# Base URL for Cardiac Care BDC facilities
+base_url <- "https://www.bcbs.com/about-us/programs-initiatives/blue-distinction-specialty-care/centers-and-physicians-search?designation=Blue+Distinction+Center&specialties=CRD&states=AL%2CAK%2CAZ%2CAR%2CCA%2CCO%2CCT%2CDE%2CDC%2CFL%2CGA%2CHI%2CID%2CIL%2CIN%2CIA%2CKS%2CKY%2CLA%2CME%2CMD%2CMA%2CMI%2CMN%2CMS%2CMO%2CMT%2CNE%2CNV%2CNH%2CNJ%2CNM%2CNY%2CNC%2CND%2COH%2COK%2COR%2CPA%2CPR%2CRI%2CSC%2CSD%2CTN%2CTX%2CUT%2CVT%2CVI%2CVA%2CWA%2CWV%2CWI%2CWY&page="
+
+results <- list()
+
+# Loop through all 15 pages
+for (i in 1:15) {
+  message("Scraping page ", i)
+  remDr$navigate(paste0(base_url, i, "&results=true&searchType=facilities"))
+  Sys.sleep(4)  # Allow JavaScript to load
+  
+  page <- read_html(remDr$getPageSource()[[1]])
+  
+  names <- page %>%
+    html_nodes(".provider-result-name") %>%
+    html_text(trim = TRUE)
+  
+  locations <- page %>%
+    html_nodes(".provider-result-location") %>%
+    html_text(trim = TRUE)
+  
+  # Split city/state
+  city_state <- strsplit(locations, ",\\s*")
+  cities <- sapply(city_state, `[`, 1)
+  states <- sapply(city_state, `[`, 2)
+  
+  results[[i]] <- tibble(
+    Name = names,
+    City = cities,
+    State = states
+  )
+}
+
+# Combine all pages
+all_providers <- bind_rows(results)
+
+# Save to Windows file path
+write_csv(all_providers, "C:/BDC/Cardiac_Care_Providers.csv")
+
+# Clean up
+remDr$close()
+rD$server$stop()
+
+message("✅ Scrape complete. File saved to C:/BDC/Cardiac_Care_Providers.csv")
