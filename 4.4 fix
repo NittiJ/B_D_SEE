@@ -1,0 +1,3 @@
+BDC_Final %>%
+  distinct(NPI, ZIP_5, Bdc_Program_DESCRIPTION, Designation_TYPE) %>%
+  count(Bdc_Program_DESCRIPTION, Designation_TYPE)
