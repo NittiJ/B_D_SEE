@@ -1,0 +1,11 @@
+Matched_BDC <- BDC_Data %>%
+  inner_join(
+    Final_Keys,
+    by = c("BCBSA_MSTR_PROV_ID", "PROV_MSTR_LOC_ID")
+  ) %>%
+  filter(
+    Designation_TYPE %in% c("BDC", "BDC+"),
+    !is.na(Bdc_Program_DESCRIPTION) & Bdc_Program_DESCRIPTION != "",
+    !is.na(RECOGNTN_ENTITY_CD),
+    !is.na(Recogntn_Value_CD)
+  )
